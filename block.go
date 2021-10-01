@@ -118,6 +118,20 @@ type Block interface {
 	GetType() BlockType
 }
 
+type UnsupportedBlock struct {
+	Object         ObjectType             `json:"object"`
+	ID             BlockID                `json:"id,omitempty"`
+	Type           BlockType              `json:"type"`
+	CreatedTime    *time.Time             `json:"created_time,omitempty"`
+	LastEditedTime *time.Time             `json:"last_edited_time,omitempty"`
+	HasChildren    bool                   `json:"has_children,omitempty"`
+	RawData        map[string]interface{} `json:"-"`
+}
+
+func (b UnsupportedBlock) GetType() BlockType {
+	return b.Type
+}
+
 type ParagraphBlock struct {
 	Object         ObjectType `json:"object"`
 	ID             BlockID    `json:"id,omitempty"`
@@ -448,8 +462,12 @@ func decodeBlock(raw map[string]interface{}) (Block, error) {
 		b = &PdfBlock{}
 	case BlockTypeBookmark:
 		b = &BookmarkBlock{}
+	case BlockTypeUnsupported:
+		b = &UnsupportedBlock{}
 	default:
-		return nil, fmt.Errorf("unsupported block type: %s", raw["type"].(string))
+		b = &UnsupportedBlock{
+			RawData: raw,
+		}
 	}
 	j, err := json.Marshal(raw)
 	if err != nil {
